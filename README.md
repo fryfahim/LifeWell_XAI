@@ -58,8 +58,6 @@ Watch the demo video: [`docs/2025-12-19 22-58-49.mp4`](demo_video)
 ```
 LIFEWELL_XAI/
 ├── README.md
-├── requirements.txt
-├── .gitignore
 ├── src/
 │   ├── app.py                         Streamlit web app
 │   ├── gb_model_7features.pkl         Trained Gradient Boosting model
@@ -75,7 +73,6 @@ LIFEWELL_XAI/
 ```bash
 git clone https://github.com/<your-username>/LIFEWELL_XAI.git
 cd LIFEWELL_XAI
-pip install -r requirements.txt
 cd src
 streamlit run app.py
 ```
