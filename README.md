@@ -51,7 +51,7 @@ The deployed Gradient Boosting model reached an accuracy of **0.9334** and an F1
 
 ## Demo
 
-Watch the demo video: [`docs/demo.mp4`](docs/demo.mp4)
+Watch the demo video: [`docs/demo.mp4`](docs/2025-12-19 22-58-49.mp)
 
 ## Project Structure
 
