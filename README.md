@@ -47,7 +47,7 @@ SHILD2012 Census survey: 18,957 records with 384 columns covering demographics, 
 
 ## Results
 
-The deployed Gradient Boosting model reached an accuracy of **0.9334** and an F1-score of **0.9300** on the test set. The full model comparison, confusion matrices, and discussion are in the [project report](docs/LifeWell_XAI_report.pdf).
+The deployed Gradient Boosting model reached an accuracy of **0.9334** and an F1-score of **0.9300** on the test set. The full model comparison, confusion matrices, and discussion are in the [project report](docs/lifeWell_XAI_report.pdf).
 
 ## Demo
 
