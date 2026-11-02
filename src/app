@@ -1,0 +1,349 @@
+import streamlit as st
+import numpy as np
+import pandas as pd
+import joblib
+
+# ---------------------------------------------------------
+# PAGE CONFIG
+# ---------------------------------------------------------
+st.set_page_config(page_title="LIFEWELL XAI", layout="wide", initial_sidebar_state="expanded")
+
+# ---------------------------------------------------------
+# DARK MODE TOGGLE & SESSION STATE
+# ---------------------------------------------------------
+if 'dark_mode' not in st.session_state:
+    st.session_state.dark_mode = False
+
+# Sidebar for theme toggle
+with st.sidebar:
+    st.title("⚙️ Settings")
+    dark_mode = st.toggle("🌙 Dark Mode", value=st.session_state.dark_mode)
+    st.session_state.dark_mode = dark_mode
+    
+    st.markdown("---")
+    st.markdown("### About LIFEWELL XAI")
+    st.info("This app predicts life satisfaction using machine learning with explainable AI analytics.")
+    st.markdown("---")
+    st.markdown("### Feature Guide")
+    st.markdown("""
+    - **General Health**: Overall physical health status
+    - **Financial Satisfaction**: Contentment with finances
+    - **Stress Level**: Current stress intensity
+    - **Housing Satisfaction**: Happiness with living situation
+    - **Social Support**: Quality of social connections
+    - **Community Engagement**: Level of community involvement
+    """)
+
+# ---------------------------------------------------------
+# DYNAMIC THEME STYLING
+# ---------------------------------------------------------
+if st.session_state.dark_mode:
+    # Dark mode colors
+    bg_color = "#0e1117"
+    secondary_bg = "#1e2130"
+    text_color = "#ffffff"
+    card_bg = "#262730"
+    border_color = "#4a9eff"
+    accent_color = "#4a9eff"
+    button_bg = "#4a9eff"
+    button_hover = "#357abd"
+else:
+    # Light mode colors
+    bg_color = "#f0f4f8"
+    secondary_bg = "#ffffff"
+    text_color = "#1e1e1e"
+    card_bg = "#ffffff"
+    border_color = "#1E7F8B"
+    accent_color = "#1E7F8B"
+    button_bg = "#1E7F8B"
+    button_hover = "#145f69"
+
+st.markdown(f"""
+    <style>
+    .main {{
+        background-color: {bg_color};
+    }}
+    .stApp {{
+        background-color: {bg_color};
+    }}
+    section[data-testid="stSidebar"] {{
+        background-color: {secondary_bg};
+    }}
+    .stButton>button {{
+        width: 100%;
+        border-radius: 12px;
+        height: 3em;
+        background: linear-gradient(135deg, {button_bg} 0%, {button_hover} 100%);
+        color: white;
+        font-weight: 600;
+        border: none;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }}
+    .stButton>button:hover {{
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+    }}
+    .metric-card {{
+        background-color: {card_bg};
+        padding: 25px;
+        border-radius: 16px;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+        border-left: 5px solid {border_color};
+        margin: 10px 0;
+    }}
+    h1, h2, h3, h4, h5, h6, p, label, div {{
+        color: {text_color} !important;
+    }}
+    .stSlider {{
+        padding: 10px 0;
+    }}
+    .success-card {{
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        padding: 20px;
+        border-radius: 16px;
+        color: white;
+        text-align: center;
+        box-shadow: 0 8px 24px rgba(16, 185, 129, 0.3);
+    }}
+    .error-card {{
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        padding: 20px;
+        border-radius: 16px;
+        color: white;
+        text-align: center;
+        box-shadow: 0 8px 24px rgba(239, 68, 68, 0.3);
+    }}
+    .feature-input {{
+        background-color: {card_bg};
+        padding: 20px;
+        border-radius: 12px;
+        margin: 10px 0;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    }}
+    .stMetric {{
+        background-color: {card_bg};
+        padding: 15px;
+        border-radius: 12px;
+    }}
+    .importance-bar {{
+        background-color: {card_bg};
+        padding: 15px;
+        border-radius: 8px;
+        margin: 8px 0;
+        border-left: 4px solid {accent_color};
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }}
+    .bar-fill {{
+        height: 30px;
+        border-radius: 6px;
+        background: linear-gradient(90deg, {accent_color} 0%, {button_hover} 100%);
+        transition: width 0.5s ease;
+        display: flex;
+        align-items: center;
+        padding-left: 10px;
+        color: white;
+        font-weight: 600;
+    }}
+    </style>
+""", unsafe_allow_html=True)
+
+# ---------------------------------------------------------
+# LOAD MODEL
+# ---------------------------------------------------------
+@st.cache_resource
+def load_model():
+    try:
+        return joblib.load("gb_model_7features.pkl")
+    except FileNotFoundError:
+        st.error("⚠️ Model file not found. Please ensure 'gb_model_7features.pkl' is in the same directory.")
+        st.stop()
+
+model = load_model()
+
+# These are the exact features expected by your .pkl file 
+FEATURES = ["age", "A2", "B1", "C1", "D1", "E1", "G1"]
+FEATURE_NAMES = {
+    "age": "Age",
+    "A2": "General Health",
+    "B1": "Financial Satisfaction",
+    "C1": "Stress Level",
+    "D1": "Housing Satisfaction",
+    "E1": "Social Support",
+    "G1": "Community Engagement"
+}
+
+# ---------------------------------------------------------
+# HEADER
+# ---------------------------------------------------------
+st.markdown(f"""
+    <div style='text-align: center; padding: 20px; background: linear-gradient(135deg, {accent_color} 0%, {button_hover} 100%); 
+                border-radius: 16px; margin-bottom: 30px; box-shadow: 0 8px 24px rgba(0,0,0,0.15);'>
+        <h1 style='color: white !important; margin: 0; font-size: 3em;'> LIFEWELL XAI</h1>
+        <p style='color: white !important; font-size: 1.2em; margin: 10px 0 0 0;'>
+            Predict Life Satisfaction 
+        </p>
+    </div>
+""", unsafe_allow_html=True)
+
+# ---------------------------------------------------------
+# INPUT SECTION
+# ---------------------------------------------------------
+st.markdown("<h2 style='margin-top: 30px;'>📋 Personal Profile Indicators</h2>", unsafe_allow_html=True)
+
+col1, col2, col3 = st.columns(3)
+
+with col1:
+    st.markdown("<div class='feature-input'>", unsafe_allow_html=True)
+    age = st.slider("Age", 18, 100, 30, help="Select your current age")
+    A2 = st.select_slider(" General Health (A2)", 
+                          options=[0, 1, 2, 3, 4], 
+                          value=2,
+                          help="0: Very Bad → 4: Very Good")
+    st.markdown("</div>", unsafe_allow_html=True)
+    
+with col2:
+    st.markdown("<div class='feature-input'>", unsafe_allow_html=True)
+    B1 = st.select_slider(" Financial Satisfaction (B1)", 
+                          options=[0, 1, 2, 3, 4],
+                          value=2,
+                          help="0: Very Dissatisfied → 4: Very Satisfied")
+    C1 = st.select_slider(" Stress Level (C1)", 
+                          options=[0, 1, 2, 3, 4],
+                          value=2,
+                          help="0: No Stress → 4: Extreme Stress")
+    st.markdown("</div>", unsafe_allow_html=True)
+    
+with col3:
+    st.markdown("<div class='feature-input'>", unsafe_allow_html=True)
+    D1 = st.select_slider(" Housing Satisfaction (D1)", 
+                          options=[0, 1, 2, 3, 4],
+                          value=2,
+                          help="0: Very Dissatisfied → 4: Very Satisfied")
+    E1 = st.select_slider(" Social Support (E1)", 
+                          options=[0, 1, 2, 3, 4],
+                          value=2,
+                          help="0: No Support → 4: Strong Support")
+    G1 = st.select_slider(" Community Engagement (G1)", 
+                          options=[0, 1, 2, 3, 4],
+                          value=2,
+                          help="0: No Support → 4: Strong Support")
+    
+    st.markdown("</div>", unsafe_allow_html=True)
+
+st.markdown("<br>", unsafe_allow_html=True)
+
+# ---------------------------------------------------------
+# PREDICTION & RESULTS
+# ---------------------------------------------------------
+if st.button(" Analyze Well-being Score"):
+    with st.spinner(" Analyzing your well-being profile..."):
+        # Prepare input array
+        input_data = np.array([[age, A2, B1, C1, D1, E1, G1]])
+        
+        prediction = model.predict(input_data)[0]
+        probabilities = model.predict_proba(input_data)[0]
+        
+        st.markdown("<br>", unsafe_allow_html=True)
+        
+        res_col, exp_col = st.columns([1, 2], gap="large")
+        
+        with res_col:
+            confidence = probabilities[prediction] * 100
+            
+            if prediction == 1:
+                st.markdown(f"""
+                    <div class='success-card'>
+                        <h2 style='color: white !important; margin: 0;'> SATISFIED</h2>
+                        <h1 style='color: white !important; font-size: 3em; margin: 20px 0;'>{confidence:.1f}%</h1>
+                        <p style='color: white !important; font-size: 1.1em;'>Confidence Score</p>
+                    </div>
+                """, unsafe_allow_html=True)
+            else:
+                st.markdown(f"""
+                    <div class='error-card'>
+                        <h2 style='color: white !important; margin: 0;'> DISSATISFIED</h2>
+                        <h1 style='color: white !important; font-size: 3em; margin: 20px 0;'>{confidence:.1f}%</h1>
+                        <p style='color: white !important; font-size: 1.1em;'>Confidence Score</p>
+                    </div>
+                """, unsafe_allow_html=True)
+            
+            # Probability distribution
+            st.markdown("<br>", unsafe_allow_html=True)
+            st.markdown("<div class='metric-card'>", unsafe_allow_html=True)
+            st.markdown("### 📊 Probability Distribution")
+            col_a, col_b = st.columns(2)
+            with col_a:
+                st.metric("Dissatisfied", f"{probabilities[0]*100:.1f}%")
+            with col_b:
+                st.metric("Satisfied", f"{probabilities[1]*100:.1f}%")
+            st.markdown("</div>", unsafe_allow_html=True)
+                
+        with exp_col:
+            st.markdown("<div class='metric-card'>", unsafe_allow_html=True)
+            st.markdown("### 🔍 Feature Importance Analysis")
+            
+            # Generate custom bar chart
+            importances = model.feature_importances_
+            feature_labels = [FEATURE_NAMES[f] for f in FEATURES]
+            df_imp = pd.DataFrame({
+                'Feature': feature_labels, 
+                'Importance': importances
+            }).sort_values('Importance', ascending=False)
+            
+            # Normalize for display (0-100%)
+            max_imp = df_imp['Importance'].max()
+            
+            for _, row in df_imp.iterrows():
+                width_pct = (row['Importance'] / max_imp) * 100
+                st.markdown(f"""
+                    <div class='importance-bar'>
+                        <div style='display: flex; justify-content: space-between; margin-bottom: 5px;'>
+                            <span style='font-weight: 600;'>{row['Feature']}</span>
+                            <span style='color: {accent_color}; font-weight: 600;'>{row['Importance']:.4f}</span>
+                        </div>
+                        <div style='background-color: rgba(150,150,150,0.2); border-radius: 6px; overflow: hidden;'>
+                            <div class='bar-fill' style='width: {width_pct}%;'></div>
+                        </div>
+                    </div>
+                """, unsafe_allow_html=True)
+            
+            st.markdown("</div>", unsafe_allow_html=True)
+        
+        # Additional insights
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown("<div class='metric-card'>", unsafe_allow_html=True)
+        st.markdown("### 💡 Your Profile Summary")
+        
+        input_values = {
+            "Age": age,
+            "General Health": f"{A2}/4",
+            "Financial Satisfaction": f"{B1}/4",
+            "Stress Level": f"{C1}/4",
+            "Housing Satisfaction": f"{D1}/4",
+            "Social Support": f"{E1}/4",
+            "Community Engagement": f"{G1}/10"
+        }
+        
+        cols = st.columns(4)
+        for idx, (key, value) in enumerate(input_values.items()):
+            with cols[idx % 4]:
+                st.metric(key, value)
+        
+        st.markdown("</div>", unsafe_allow_html=True)
+
+# ---------------------------------------------------------
+# FOOTER
+# ---------------------------------------------------------
+st.markdown("<br><br>", unsafe_allow_html=True)
+st.markdown(f"""
+    <div style='text-align: center; padding: 20px; background-color: {secondary_bg}; 
+                border-radius: 12px; border-top: 3px solid {border_color};'>
+        <p style='color: {text_color}; margin: 0;'>
+            MD Fahim Hossain Khan | Built with Streamlit
+        </p>
+        <p style='color: gray; font-size: 0.9em; margin: 5px 0 0 0;'>
+            v1.6.1 | predict your Satisfaction
+        </p>
+    </div>
+""", unsafe_allow_html=True)
